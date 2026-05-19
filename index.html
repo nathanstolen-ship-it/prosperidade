@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#faf9f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Jogo da Prosperidade</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf9f5;
+    color: #1a1a1a;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-color-scheme: dark) {
+    html, body { background: #1a1a1a; color: #ececec; }
+    .card { background: #262626 !important; border-color: #383838 !important; }
+    .card-muted { background: #222 !important; }
+    input { background: #2a2a2a !important; color: #ececec !important; border-color: #383838 !important; }
+    .history-item { background: #262626 !important; border-color: #383838 !important; }
+    .label, .day-label, .available-label { color: #999 !important; }
+    .meta { color: #888 !important; }
+    .day-divider { background: #1a1a1a !important; color: #888 !important; }
+    .modal-content { background: #262626 !important; color: #ececec !important; }
+    .modal-content p { color: #bbb !important; }
+    .modal-overlay { background: rgba(0,0,0,0.6) !important; }
+  }
+  .container { max-width: 480px; margin: 0 auto; padding: 16px 16px 32px; }
+  .header { text-align: center; padding: 12px 0 16px; }
+  .header h1 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: 0.3px; }
+  .header .sub { font-size: 12px; color: #888; margin-top: 2px; font-style: italic; }
+  .card {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  .card-muted {
+    background: #f1efe8;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  .day-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .day-label { font-size: 13px; color: #666; }
+  .date-label { font-size: 11px; color: #999; text-transform: capitalize; }
+  .available-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .available-label { font-size: 13px; color: #666; }
+  .available-value { font-size: 26px; font-weight: 500; }
+  .meta { font-size: 11px; color: #999; margin-top: 6px; line-height: 1.5; }
+  .label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; letter-spacing: 0.2px; }
+  .section-label { font-size: 12px; color: #666; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0.5px solid rgba(0,0,0,0.18);
+    border-radius: 8px;
+    font-size: 16px;
+    background: #fff;
+    color: #1a1a1a;
+    font-family: inherit;
+    margin-bottom: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 2px rgba(74,144,226,0.15); }
+  button {
+    font-family: inherit;
+    font-size: 15px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(0,0,0,0.18);
+    background: #fff;
+    color: #1a1a1a;
+    cursor: pointer;
+    font-weight: 500;
+    transition: transform 0.05s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.98); opacity: 0.85; }
+  button.primary { width: 100%; background: #1a4d8f; color: #fff; border: none; }
+  .error { font-size: 12px; color: #c0392b; margin-top: 8px; min-height: 16px; }
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin: 16px 4px 8px; }
+  .clear-link { font-size: 12px; color: #999; background: transparent; border: none; padding: 4px 8px; cursor: pointer; }
+  .history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .history-memo { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history-value { font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .day-divider { font-size: 11px; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; padding: 10px 4px 4px; background: #faf9f5; }
+  .empty { font-size: 13px; color: #aaa; text-align: center; padding: 24px 12px; font-style: italic; }
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-content { background: #fff; border-radius: 12px; padding: 20px; max-width: 360px; width: 100%; }
+  .modal-content h3 { margin: 0 0 8px; font-size: 16px; font-weight: 500; }
+  .modal-content p { font-size: 14px; color: #555; margin: 0 0 16px; }
+  .modal-buttons { display: flex; gap: 8px; }
+  .modal-buttons button { flex: 1; font-size: 14px; padding: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Jogo da Prosperidade</h1>
+    <div class="sub">"Meta a mão na massa. Evoque a Energia através do poder de seu desejo."</div>
+  </div>
+
+  <div class="card-muted">
+    <div class="day-row">
+      <div>
+        <div class="day-label">Dia <span id="day-num">1</span></div>
+        <div class="date-label" id="date-label"></div>
+      </div>
+    </div>
+    <div class="available-row">
+      <span class="available-label">Saldo</span>
+      <span class="available-value" id="available">R$ 1.000</span>
+    </div>
+    <div class="meta">
+      Depósito de hoje: <span id="deposit-amount">R$ 1.000</span><br>
+      Total gasto: <span id="total-spent">R$ 0</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Preencher cheque</div>
+    <label class="label" for="memo-input">Para que / em quê</label>
+    <input type="text" id="memo-input" placeholder="Ex: uma caneta lindíssima" autocomplete="off">
+    <label class="label" for="value-input">Valor (R$)</label>
+    <input type="number" id="value-input" placeholder="0" min="1" inputmode="numeric">
+    <button class="primary" id="submit-btn">Gastar</button>
+    <div class="error" id="error-msg"></div>
+  </div>
+
+  <div class="history-header">
+    <span class="section-label" style="margin:0;">Histórico</span>
+    <button class="clear-link" id="clear-btn">Limpar tudo</button>
+  </div>
+  <div class="history-list" id="history-list">
+    <div class="empty">Nenhum cheque preenchido ainda.<br>Sua imaginação te espera ✨</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-content">
+    <h3 id="modal-title">Um novo dia!</h3>
+    <p id="modal-text"></p>
+    <div class="modal-buttons">
+      <button style="font-size:14px;padding:10px;" id="modal-stay">Continuar no mesmo dia</button>
+      <button class="primary" style="width:auto;font-size:14px;padding:10px;" id="modal-advance">Avançar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'jogo_prosperidade_v2';
+
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function daysBetween(a, b) {
+    return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000);
+  }
+  function formatDateBR(s) {
+    const d = new Date(s+'T00:00:00');
+    const dias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    return dias[d.getDay()] + ', ' + d.getDate() + ' de ' + meses[d.getMonth()];
+  }
+
+  let state;
+  try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {}
+  if (!state) {
+    const t = todayStr();
+    state = { start_date: t, current_day: 1, last_open_date: t, balance: 1000, total_deposited: 1000, total_spent: 0, history: [] };
+    save();
+  }
+
+  function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+  const fmt = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+  const dep = d => d * 1000;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function render() {
+    document.getElementById('day-num').textContent = state.current_day;
+    document.getElementById('date-label').textContent = formatDateBR(todayStr());
+    document.getElementById('available').textContent = fmt(state.balance);
+    document.getElementById('deposit-amount').textContent = fmt(dep(state.current_day));
+    document.getElementById('total-spent').textContent = fmt(state.total_spent);
+
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    if (!state.history.length) {
+      list.innerHTML = '<div class="empty">Nenhum cheque preenchido ainda.<br>Sua imaginação te espera ✨</div>';
+      return;
+    }
+    const sorted = [...state.history].sort((a,b) => b.timestamp - a.timestamp);
+    let curDay = null;
+    sorted.forEach(item => {
+      if (item.day !== curDay) {
+        curDay = item.day;
+        const div = document.createElement('div');
+        div.className = 'day-divider';
+        div.textContent = 'Dia ' + item.day;
+        list.appendChild(div);
+      }
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      row.innerHTML = `<div class="history-memo">${esc(item.memo)}</div><div class="history-value">${fmt(item.value)}</div>`;
+      list.appendChild(row);
+    });
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3500);
+  }
+
+  function checkAdvancement() {
+    const today = todayStr();
+    const real = daysBetween(state.start_date, today) + 1;
+    const diff = real - state.current_day;
+    if (diff <= 0) { state.last_open_date = today; save(); return; }
+
+    const newDay = state.current_day + diff;
+    let totalNew = 0;
+    for (let d = state.current_day + 1; d <= newDay; d++) totalNew += dep(d);
+
+    const title = document.getElementById('modal-title');
+    const text = document.getElementById('modal-text');
+    title.textContent = diff === 1 ? 'Um novo dia!' : 'Bem-vindo de volta!';
+    text.innerHTML = diff === 1
+      ? `Hoje é seu <strong>Dia ${newDay}</strong>, com depósito de <strong>${fmt(dep(newDay))}</strong>. Quer avançar?`
+      : `Passaram <strong>${diff} dias</strong> desde sua última visita. Avançar pro <strong>Dia ${newDay}</strong> adiciona <strong>${fmt(totalNew)}</strong> ao seu saldo.`;
+
+    document.getElementById('modal').classList.add('active');
+
+    document.getElementById('modal-advance').onclick = () => {
+      for (let d = state.current_day + 1; d <= newDay; d++) { state.balance += dep(d); state.total_deposited += dep(d); }
+      state.current_day = newDay;
+      state.last_open_date = today;
+      save(); document.getElementById('modal').classList.remove('active'); render();
+    };
+    document.getElementById('modal-stay').onclick = () => {
+      state.last_open_date = today; save();
+      document.getElementById('modal').classList.remove('active'); render();
+    };
+  }
+
+  document.getElementById('submit-btn').addEventListener('click', () => {
+    const memo = document.getElementById('memo-input').value.trim();
+    const value = parseFloat(document.getElementById('value-input').value);
+    if (!memo) { showError('Escreve no que você quer gastar'); return; }
+    if (!value || value <= 0) { showError('Coloca um valor maior que zero'); return; }
+    if (value > state.balance) { showError('Seu saldo é ' + fmt(state.balance)); return; }
+    state.history.push({ day: state.current_day, memo, value, timestamp: Date.now() });
+    state.balance -= value; state.total_spent += value;
+    document.getElementById('memo-input').value = '';
+    document.getElementById('value-input').value = '';
+    document.getElementById('memo-input').focus();
+    save(); render();
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    if (!confirm('Apagar tudo e voltar pro Dia 1?')) return;
+    const t = todayStr();
+    state = { start_date: t, current_day: 1, last_open_date: t, balance: 1000, total_deposited: 1000, total_spent: 0, history: [] };
+    save(); render();
+  });
+
+  document.getElementById('value-input').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('submit-btn').click(); });
+  document.getElementById('memo-input').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('value-input').focus(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.last_open_date !== todayStr()) checkAdvancement(); });
+
+  render();
+  checkAdvancement();
+})();
+</script>
+</body>
+</html>
